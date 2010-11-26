@@ -1,8 +1,94 @@
 #!/usr/bin/env python
 
+import re
+import time
 import sys
 import os.path
-import time
+import commands
+
+delim=dict({
+	'func':('((','))'),
+	'var':('[[',']]'),
+})
+
+filename=''
+
+def process(s):
+	macros=dict({
+		'dir' :os.path.split(filename)[0],
+		'file':os.path.split(filename)[1],
+		'base':os.path.splitext(os.path.split(filename)[1])[0],
+		'ext' :os.path.splitext(os.path.split(filename)[1])[1][1:],
+		'date':time.strftime('%Y-%m-%d'),
+		'time':time.strftime('%H:%M:%S'),
+		'user':os.getlogin(),
+		'host':os.getenv('HOSTNAME'),
+		'fdo':delim['func'][0],
+		'fdc':delim['func'][1],
+		'mdo':delim['var'][0],
+		'mdc':delim['var'][1],
+	})
+
+	for key,value in macros.items():
+		s=s.replace(delim['var'][0]+key+delim['var'][1],value)
+	return s
+
+
+
+def repl(m):
+	contents = m.group(1).partition(',')
+	command=contents[0].strip()
+	param=(contents[2],process(contents[2]).strip())
+	print '['+command+'],['+param[1]+']'
+	
+	if command=='dir':
+		return os.path.split(filename)[0]
+
+	if command=='file':
+		return os.path.split(filename)[1]
+
+	if command=='base':
+		return os.path.splitext(os.path.split(filename)[1])[0]
+
+	if command=='ext':
+		return os.path.splitext(os.path.split(filename)[1])[1][1:]
+	
+	if command=='user':
+		return os.getlogin()
+
+	if command=='host':
+		return os.getenv('HOSTNAME')
+
+	if command=='date':
+		if len(param[1]):
+			return time.strftime(param[1])
+		return time.strftime('%Y-%m-%d')
+
+	if command=='time':
+		if len(param[1]):
+			return time.strftime(param[1])
+		return time.strftime('%H:%M:%S')
+	
+	if command=='sys':
+		if len(param[1]):
+			return commands.getstatusoutput(param[1])[1]
+		return ''
+	
+	if command=='ret':
+		if len(param[1]):
+			return str(commands.getstatusoutput(param[1])[0])
+		return '0'
+
+	if command=='echo':
+		return param[0]
+
+	if command=='repl':
+		return param[1]
+
+	return ''
+
+
+
 
 
 
@@ -12,12 +98,11 @@ def main(argv=None):
 	argc=len(argv)
 
 	if argc>=3:
-		template=os.path.expanduser('~/Templates/'+argv[1])
+		template=os.path.expanduser(argv[1])
 		argv[2]=os.path.abspath(argv[2])
 
 		if not os.path.isfile(template):
-			#print 'no template for: '+template
-			os.system("touch "+argv[2])
+			os.system('touch "'+argv[2]+'"')
 			return 1
 
 		fin=None
@@ -29,27 +114,16 @@ def main(argv=None):
 
 		fout=None
 		try:
+			global filename
+			filename=argv[2]
 			fout=open(argv[2],'w')
 		except IOError:
 			print 'forge: cannot open `'+argv[2]+'\' for writing'
 			return 0
 
-
-		macros=dict({
-			'[[dir]]' :os.path.split(argv[2])[0],
-			'[[file]]':os.path.split(argv[2])[1],
-			'[[base]]':os.path.splitext(os.path.split(argv[2])[1])[0],
-			'[[ext]]' :os.path.splitext(os.path.split(argv[2])[1])[1][1:],
-			'[[date]]':time.strftime('%Y-%m-%d'),
-			'[[time]]':time.strftime('%H:%M:%S'),
-			'[[user]]':os.getlogin(),
-			'[[host]]':os.getenv('HOSTNAME')
-		})
-
-		print macros
+		regex=re.escape(delim['func'][0])+'(.*?)'+re.escape(delim['func'][1])
 		for line in fin:
-			for key,value in macros.items():
-				line=line.replace(key,value)
+			line=re.sub(regex,repl,line)
 			fout.write(line)
 		fout.close()
 		fin.close()
@@ -57,13 +131,12 @@ def main(argv=None):
 
 	elif argc==2:
 		argv[1]=os.path.abspath(argv[1])
-		os.system("touch "+argv[1])
+		os.system('touch "'+argv[1]+'"')
 		return 1
 
 	else:
 		print 'forge: missing file operand'
 		print 'Try `forge --help\' for more information'
-
 
 
 
