@@ -23,10 +23,10 @@ def process(s):
 		'time':time.strftime('%H:%M:%S'),
 		'user':os.getlogin(),
 		'host':os.getenv('HOSTNAME'),
-		'fdo':delim['func'][0],
-		'fdc':delim['func'][1],
-		'mdo':delim['var'][0],
-		'mdc':delim['var'][1],
+		'dfo':delim['func'][0],
+		'dfc':delim['func'][1],
+		'dmo':delim['var'][0],
+		'dmc':delim['var'][1],
 	})
 
 	for key,value in macros.items():
@@ -96,6 +96,19 @@ def main(argv=None):
 	if argv is None:
 		argv = sys.argv
 	argc=len(argv)
+
+	if argc>=2:
+		if argv[1]=='--help':
+			print 'Usage: forge [TEMPLATE] FILE'
+			print 'Create a file based on an optional template'
+			print
+			print 'For complete documentation, run: man forge'
+			return 0
+
+		elif argv[1]=='--version':
+			print 'forge version 1.0'
+			return 0
+
 
 	if argc>=3:
 		template=os.path.expanduser(argv[1])
