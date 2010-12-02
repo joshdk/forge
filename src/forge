@@ -39,7 +39,7 @@ def repl(m):
 	contents = m.group(1).partition(',')
 	command=contents[0].strip()
 	param=(contents[2],process(contents[2]).strip())
-	print '['+command+'],['+param[1]+']'
+	#print '['+command+'],['+param[1]+']'
 	
 	if command=='dir':
 		return os.path.split(filename)[0]
@@ -123,7 +123,7 @@ def main(argv=None):
 			fin=open(template,'r')
 		except IOError:
 			print 'forge: cannot open `'+template+'\' for reading'
-			return 0
+			return 1
 
 		fout=None
 		try:
@@ -132,7 +132,7 @@ def main(argv=None):
 			fout=open(argv[2],'w')
 		except IOError:
 			print 'forge: cannot open `'+argv[2]+'\' for writing'
-			return 0
+			return 1
 
 		regex=re.escape(delim['func'][0])+'(.*?)'+re.escape(delim['func'][1])
 		for line in fin:
